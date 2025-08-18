@@ -92,17 +92,17 @@ async function buildServer() {
     }
   });
 
-  // Register Swagger UI
+  // Register Swagger UI with configuration to avoid SSL issues
   await fastify.register(swaggerUi, {
     routePrefix: '/docs',
+    staticCSP: false,
     uiConfig: {
       docExpansion: 'list',
-      deepLinking: false
-    },
-    staticCSP: true,
-    transformStaticCSP: (header) => header,
-    transformSpecification: (swaggerObject, request, reply) => {
-      return swaggerObject;
+      deepLinking: false,
+      validatorUrl: null, // Disable external validation to prevent SSL issues
+      layout: 'BaseLayout',
+      // Disable trying to contact external services
+      supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
     },
     transformSpecificationClone: true
   });
