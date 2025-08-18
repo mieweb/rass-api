@@ -1,0 +1,387 @@
+openapi: 3.0.3
+info:
+  title: RASS API
+  description: Reference Architecture for Semantic Search - API specification for document embedding and semantic search
+  version: 1.0.0
+  contact:
+    name: RASS API Support
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    EmbedRequest:
+      type: object
+      required:
+        - id
+        - content
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the document
+        content:
+          type: string
+          description: Document content to embed
+        metadata:
+          type: object
+          properties:
+            title:
+              type: string
+            source:
+              type: string
+            application:
+              type: string
+              enum: [redmine, mediawiki, rocketchat]
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+            author:
+              type: string
+            url:
+              type: string
+          additionalProperties: true
+
+    EmbedResponse:
+      type: object
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [success, error]
+        message:
+          type: string
+        embedding:
+          type: array
+          items:
+            type: number
+
+    SearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Search query text
+        filters:
+          type: object
+          properties:
+            application:
+              type: string
+            source:
+              type: string
+            author:
+              type: string
+            date_range:
+              type: object
+              properties:
+                start:
+                  type: string
+                  format: date-time
+                end:
+                  type: string
+                  format: date-time
+          additionalProperties: true
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+        offset:
+          type: integer
+          minimum: 0
+          default: 0
+
+    SearchResult:
+      type: object
+      required:
+        - id
+        - content
+        - metadata
+        - score
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        score:
+          type: number
+        highlights:
+          type: array
+          items:
+            type: string
+
+    SearchResponse:
+      type: object
+      required:
+        - results
+        - total
+        - offset
+        - limit
+        - query
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+        total:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
+        query:
+          type: string
+
+    EmbeddedDocument:
+      type: object
+      required:
+        - id
+        - content
+        - metadata
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        embedding:
+          type: array
+          items:
+            type: number
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    RefreshRequest:
+      type: object
+      properties:
+        application:
+          type: string
+        source:
+          type: string
+        force:
+          type: boolean
+          default: false
+
+    RefreshResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [success, error]
+        message:
+          type: string
+        processed:
+          type: integer
+        errors:
+          type: integer
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /embed:
+    post:
+      summary: Embed a document
+      description: Store and vectorize a document for semantic search
+      tags:
+        - Documents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbedRequest'
+      responses:
+        '200':
+          description: Document embedded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbedResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /search:
+    post:
+      summary: Search documents
+      description: Perform semantic or keyword search across embedded documents
+      tags:
+        - Search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /item/{id}:
+    get:
+      summary: Get a document by ID
+      description: Retrieve a specific embedded document by its ID
+      tags:
+        - Documents
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Document ID
+      responses:
+        '200':
+          description: Document found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddedDocument'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /refresh:
+    post:
+      summary: Refresh embeddings
+      description: Refresh embeddings for documents, optionally filtered by application or source
+      tags:
+        - Maintenance
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Refresh completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check if the API is healthy and responsive
+      tags:
+        - Health
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  backend:
+                    type: string
+                    example: "simulated"
