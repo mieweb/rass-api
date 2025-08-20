@@ -1,5 +1,176 @@
 # rass-api
-Reference Specification for the RASS Server
+Reference Specification & Implementation for the RASS Server
+
+This repository now contains a minimal Fastify-based implementation of the RASS (Retrieval Abstraction Semantic Service) API with a pluggable backend architecture. Two backends are included:
+
+1. Simulated backend (deterministic in‑memory mock)
+2. OpenSearch backend (real vector index & kNN search)
+
+> Phase 2 (future) will introduce pluggable client libraries mimicking familiar SDKs (S3, MariaDB, OpenSearch, MongoDB). Not implemented yet.
+
+## Features
+
+- Backend abstraction via `IRassBackend` interface
+- Swap backends using `RASS_BACKEND=simulated|opensearch`
+- Endpoints: `POST /embed`, `POST /search`, `GET /item/:id`, `POST /refresh`, `GET /health`
+- OpenAPI/Swagger served at `/docs`
+- Deterministic mock embeddings for repeatable testing
+- OpenSearch integration (index-per-application pattern `rass-<appId>`, kNN vector field)
+- Basic API key auth via `x-api-key` header (optional)
+- Docker Compose for local OpenSearch + API
+
+## Quick Start (Simulated Mode)
+
+```bash
+git clone <this-repo>
+cd rass-api
+cp .env.example .env  # (optional) edit values
+npm install
+npm run dev
+```
+
+Visit: http://localhost:3000/docs
+
+Example curl (omit x-api-key header if auth disabled):
+```bash
+curl -X POST http://localhost:3000/embed \
+  -H 'content-type: application/json' \
+  -d '{"appId":"mediawiki","documentId":"Doc1","content":"Hello semantic world"}'
+
+curl -X POST http://localhost:3000/search \
+  -H 'content-type: application/json' \
+  -d '{"appId":"mediawiki","query":"semantic"}'
+```
+
+## OpenSearch Mode (Docker Compose)
+
+```bash
+docker compose up --build
+```
+
+Wait until OpenSearch is healthy, then open http://localhost:3000/docs
+
+Environment overrides (in compose already):
+```
+RASS_BACKEND=opensearch
+OPENSEARCH_NODE=http://opensearch:9200
+RASS_VECTOR_DIM=16
+RASS_API_KEY=changeme
+```
+
+### Manual OpenSearch Run (without docker compose for API)
+
+1. Start OpenSearch (Docker):
+   ```bash
+   docker run -p 9200:9200 -p 9600:9600 --name os-dev \
+     -e discovery.type=single-node -e plugins.security.disabled=true \
+     -e OPENSEARCH_JAVA_OPTS='-Xms512m -Xmx512m' \
+     opensearchproject/opensearch:2.13.0
+   ```
+2. In another shell:
+   ```bash
+   RASS_BACKEND=opensearch OPENSEARCH_NODE=http://localhost:9200 \
+   RASS_API_KEY=changeme npm run dev
+   ```
+
+## API Authentication
+
+If `RASS_API_KEY` is set, every request must include header:
+```
+x-api-key: <value>
+```
+Unset the env var to disable auth (development only).
+
+## Backend Abstraction
+
+`IRassBackend` defines:
+
+```ts
+embed(request: EmbedRequest): Promise<EmbedResponse>;
+search(request: SearchRequest): Promise<SearchResponse>;
+getItem(id: string): Promise<EmbeddedDocument | undefined>;
+refresh(request: RefreshRequest): Promise<{ status: string }>;
+```
+
+Add new backends by implementing this interface; register in `server.ts` switch on `RASS_BACKEND`.
+
+## Data / Index Strategy
+
+- One OpenSearch index per `appId`: `rass-<appId>`
+- Mappings include `embedding` (`knn_vector`) & metadata object
+- Deterministic hashing currently used in lieu of a true embedding model (replaceable later). This still exercises kNN query path.
+
+### Owner Filtering
+
+Both backends accept an optional `owner` field in `EmbedRequest` and `SearchRequest`.
+
+Use cases:
+- Multi-tenant deployments where `appId` is a product and `owner` is a tenant / user / project
+- Permission scoping (phase 1: simple equality filter)
+
+Behavior:
+- If `owner` is supplied on embed, it's stored with the vector.
+- If `owner` is supplied on search, results are restricted to documents with the same owner.
+
+Example:
+```bash
+curl -X POST http://localhost:3000/search \
+  -H 'content-type: application/json' \
+  -d '{"appId":"mediawiki","query":"semantic","owner":"tenantA"}'
+```
+
+## OpenAPI & Client Generation
+
+The spec lives in `openapi.yaml` and is also loaded by the server. Generate clients with your preferred tool, e.g.:
+
+```bash
+npx openapi-typescript-codegen --input openapi.yaml --output clients/typescript
+```
+
+Or (Python):
+```bash
+openapi-generator generate -i openapi.yaml -g python -o clients/python
+```
+
+## Future Roadmap (Not Implemented Yet)
+
+- Pluggable true embedding providers (OpenAI, local models)
+- Application-specific permission enforcement / ACL filters
+- Streaming & re-ranking pipeline (Recommendation Engine placeholder)
+- Client SDKs mimicking S3, pgvector, MongoDB, etc.
+- Batch ingest & delete endpoints
+
+## Development Scripts
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Start TS server with live reload |
+| `npm run build` | Compile to `dist/` |
+| `npm start` | Run compiled JS |
+| `npm run typecheck` | Strict TypeScript check |
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RASS_BACKEND` | simulated | Backend type (simulated|opensearch) |
+| `OPENSEARCH_NODE` | http://localhost:9200 | OpenSearch endpoint |
+| `RASS_API_KEY` | (unset) | API key to require header auth |
+| `RASS_VECTOR_DIM` | 16 | Vector dimension for deterministic embedding |
+| `PORT` | 3000 | Server port |
+
+## Testing the Flow (Simulated)
+
+1. Embed 2 docs with different content.
+2. Search with a query word present in one doc more semantically; deterministic vectors will bias toward similar token distribution via hashing.
+
+## Philosophy (Recap)
+
+The RASS philosophy centers on decoupling document storage from advanced semantic search, allowing organizations to maintain full control over their original data while enabling powerful, context-aware retrieval capabilities. Traditional search systems often require applications to tightly integrate with specific storage engines or indexing strategies, leading to complexity, vendor lock-in, and challenges in scaling or evolving the underlying architecture. By introducing a minimalistic, API-driven layer that handles vectorization and semantic search independently of the application’s own storage, RASS empowers teams to innovate and adapt without sacrificing data ownership or flexibility. This approach is essential for organizations that need to support diverse applications, future-proof their infrastructure, and deliver fast, relevant search experiences without being constrained by the limitations of any single backend technology.
+
+## Original Design Diagrams & Narrative
+
+The following architectural description and diagrams illustrate the conceptual model.
 
 The RASS philosophy centers on decoupling document storage from advanced semantic search, allowing organizations to maintain full control over their original data while enabling powerful, context-aware retrieval capabilities. Traditional search systems often require applications to tightly integrate with specific storage engines or indexing strategies, leading to complexity, vendor lock-in, and challenges in scaling or evolving the underlying architecture. By introducing a minimalistic, API-driven layer that handles vectorization and semantic search independently of the application’s own storage, RASS empowers teams to innovate and adapt without sacrificing data ownership or flexibility. This approach is essential for organizations that need to support diverse applications, future-proof their infrastructure, and deliver fast, relevant search experiences without being constrained by the limitations of any single backend technology.
 

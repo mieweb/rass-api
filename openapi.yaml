@@ -1,0 +1,158 @@
+openapi: 3.0.3
+info:
+  title: RASS API
+  version: 0.1.0
+  description: |
+    Reference API for RASS (Retrieval Abstraction Semantic Service).
+security:
+  - ApiKeyAuth: []
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /embed:
+    post:
+      summary: Embed a document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbedRequest'
+      responses:
+        '200':
+          description: Embedded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbedResponse'
+  /search:
+    post:
+      summary: Semantic / vector search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+  /item/{id}:
+    get:
+      summary: Get embedded document
+      parameters:
+        - in: path
+          name: id
+          schema: { type: string }
+          required: true
+      responses:
+        '200':
+          description: Document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddedDocument'
+        '404':
+          description: Not found
+  /refresh:
+    post:
+      summary: Refresh backend index for application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+components:
+  schemas:
+    EmbedRequest:
+      type: object
+      required: [appId, documentId, content]
+      properties:
+        appId: { type: string }
+        documentId: { type: string }
+        owner: { type: string }
+        content: { type: string }
+        metadata: { type: object, additionalProperties: true }
+    EmbedResponse:
+      type: object
+      required: [id, appId, documentId, vectorDimension, status, createdAt]
+      properties:
+        id: { type: string }
+        appId: { type: string }
+        documentId: { type: string }
+        vectorDimension: { type: integer }
+        status: { type: string }
+        createdAt: { type: string }
+    SearchRequest:
+      type: object
+      required: [appId, query]
+      properties:
+        appId: { type: string }
+        query: { type: string }
+        topK: { type: integer }
+        owner: { type: string }
+        filters: { type: object, additionalProperties: true }
+    SearchHit:
+      type: object
+      required: [id, documentId, score]
+      properties:
+        id: { type: string }
+        documentId: { type: string }
+        score: { type: number }
+        snippet: { type: string }
+        metadata: { type: object, additionalProperties: true }
+    SearchResponse:
+      type: object
+      required: [appId, query, topK, hits, tookMs]
+      properties:
+        appId: { type: string }
+        query: { type: string }
+        topK: { type: integer }
+        tookMs: { type: integer }
+        hits:
+          type: array
+          items: { $ref: '#/components/schemas/SearchHit' }
+    EmbeddedDocument:
+      type: object
+      required: [id, appId, documentId, content, embedding]
+      properties:
+        id: { type: string }
+        appId: { type: string }
+        documentId: { type: string }
+        owner: { type: string }
+        content: { type: string }
+        embedding:
+          type: array
+          items: { type: number }
+        metadata: { type: object, additionalProperties: true }
+        createdAt: { type: string }
+    RefreshRequest:
+      type: object
+      required: [appId]
+      properties:
+        appId: { type: string }
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
