@@ -1,7 +1,7 @@
 # rass-api
 Reference Specification & Implementation for the RASS Server
 
-This repository now contains a minimal Fastify-based implementation of the RASS (Retrieval Abstraction Semantic Service) API with a pluggable backend architecture. Two backends are included:
+This repository now contains a minimal Fastify-based implementation of the RASS (Retrieval Augmented Semantic Search) API with a pluggable backend architecture. Two backends are included:
 
 1. Simulated backend (deterministic in‑memory mock)
 2. OpenSearch backend (real vector index & kNN search)

@@ -3,7 +3,7 @@ info:
   title: RASS API
   version: 0.1.0
   description: |
-    Reference API for RASS (Retrieval Abstraction Semantic Service).
+    Reference API for RASS (Retrieval Augmented Semantic Search).
 security:
   - ApiKeyAuth: []
 servers:
