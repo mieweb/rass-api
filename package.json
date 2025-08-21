@@ -1,0 +1,31 @@
+{
+  "name": "rass-api",
+  "version": "0.1.0",
+  "description": "Reference Specification for the RASS Server (Fastify)",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "node --loader ts-node/esm --experimental-specifier-resolution=node src/server.ts",
+    "dev:watch": "nodemon --watch src --ext ts,yaml --exec \"node --loader ts-node/esm --experimental-specifier-resolution=node src/server.ts\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'No linter configured'"
+  },
+  "dependencies": {
+    "@fastify/swagger": "^8.14.0",
+    "@fastify/swagger-ui": "^3.0.0",
+    "@opensearch-project/opensearch": "^2.12.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.28.1",
+    "yaml": "^2.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.5.4",
+    "nodemon": "^3.1.4"
+  }
+}

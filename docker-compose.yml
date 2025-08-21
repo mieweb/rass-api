@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.13.0
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - '9200:9200'
+      - '9600:9600'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  rass-api:
+    build: .
+    image: rass-api:dev
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    environment:
+      - RASS_BACKEND=opensearch
+      - OPENSEARCH_NODE=http://opensearch:9200
+      - RASS_API_KEY=changeme
+      - RASS_VECTOR_DIM=16
+      - PORT=3000
+    ports:
+      - '3000:3000'
+    command: ["npm", "run", "dev"]
