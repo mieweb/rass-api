@@ -21,6 +21,7 @@ export default async function embedRoute(fastify: FastifyInstance) {
                 type: 'string',
                 enum: ['redmine', 'mediawiki', 'rocketchat']
               },
+              owner: { type: 'string' },
               created_at: { type: 'string', format: 'date-time' },
               updated_at: { type: 'string', format: 'date-time' },
               author: { type: 'string' },

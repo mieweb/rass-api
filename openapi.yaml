@@ -43,6 +43,9 @@ components:
             application:
               type: string
               enum: [redmine, mediawiki, rocketchat]
+            owner:
+              type: string
+              description: Owner or tenant identifier for multi-tenant support
             created_at:
               type: string
               format: date-time
@@ -90,6 +93,9 @@ components:
               type: string
             author:
               type: string
+            owner:
+              type: string
+              description: Filter by owner or tenant identifier
             date_range:
               type: object
               properties:

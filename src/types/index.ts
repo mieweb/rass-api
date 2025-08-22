@@ -7,11 +7,12 @@ export interface EmbedRequest {
     title?: string;
     source?: string;
     application?: 'redmine' | 'mediawiki' | 'rocketchat';
+    owner?: string;
     created_at?: string;
     updated_at?: string;
     author?: string;
     url?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -28,11 +29,12 @@ export interface SearchRequest {
     application?: string;
     source?: string;
     author?: string;
+    owner?: string;
     date_range?: {
       start?: string;
       end?: string;
     };
-    [key: string]: any;
+    [key: string]: unknown;
   };
   limit?: number;
   offset?: number;
@@ -41,7 +43,7 @@ export interface SearchRequest {
 export interface SearchResult {
   id: string;
   content: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   score: number;
   highlights?: string[];
 }
@@ -57,7 +59,7 @@ export interface SearchResponse {
 export interface EmbeddedDocument {
   id: string;
   content: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown> & { owner?: string };
   embedding?: number[];
   created_at: string;
   updated_at: string;
