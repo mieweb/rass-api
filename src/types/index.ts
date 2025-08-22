@@ -11,8 +11,8 @@ export interface EmbedRequest {
     created_at?: string;
     updated_at?: string;
     author?: string;
-  url?: string;
-  [key: string]: any;
+    url?: string;
+    [key: string]: any;
   };
 }
 
@@ -33,8 +33,8 @@ export interface SearchRequest {
     date_range?: {
       start?: string;
       end?: string;
-  };
-  [key: string]: any;
+    };
+    [key: string]: any;
   };
   limit?: number;
   offset?: number;
