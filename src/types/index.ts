@@ -11,8 +11,8 @@ export interface EmbedRequest {
     created_at?: string;
     updated_at?: string;
     author?: string;
-    url?: string;
-    [key: string]: unknown;
+  url?: string;
+  [key: string]: any;
   };
 }
 
@@ -33,8 +33,8 @@ export interface SearchRequest {
     date_range?: {
       start?: string;
       end?: string;
-    };
-    [key: string]: unknown;
+  };
+  [key: string]: any;
   };
   limit?: number;
   offset?: number;
@@ -43,7 +43,7 @@ export interface SearchRequest {
 export interface SearchResult {
   id: string;
   content: string;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, any>;
   score: number;
   highlights?: string[];
 }
@@ -59,7 +59,7 @@ export interface SearchResponse {
 export interface EmbeddedDocument {
   id: string;
   content: string;
-  metadata: Record<string, unknown> & { owner?: string };
+  metadata: Record<string, any> & { owner?: string };
   embedding?: number[];
   created_at: string;
   updated_at: string;
