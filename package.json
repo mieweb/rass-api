@@ -1,0 +1,34 @@
+{
+  "name": "rass-api",
+  "version": "1.0.0",
+  "description": "Reference Specification for the RASS Server",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix"
+  },
+  "keywords": ["rass", "semantic-search", "fastify", "opensearch", "embeddings"],
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@fastify/env": "^5.0.2",
+    "@fastify/swagger": "^9.5.1",
+    "@fastify/swagger-ui": "^5.2.3",
+    "@opensearch-project/opensearch": "^3.5.1",
+    "dotenv": "^17.2.1",
+    "fastify": "^5.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.39.1",
+    "@typescript-eslint/parser": "^8.39.1",
+    "eslint": "^9.33.0",
+    "nodemon": "^3.1.10",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2"
+  }
+}
