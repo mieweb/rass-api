@@ -32,7 +32,8 @@ export class SimulatedBackend implements IRassBackend {
           source: 'articles',
           application: 'mediawiki',
           author: 'Dr. Smith',
-          url: 'https://example.com/ai-healthcare'
+          url: 'https://example.com/ai-healthcare',
+          owner: 'team-a'
         },
         embedding: this.generateDeterministicEmbedding('ai healthcare machine learning'),
         created_at: '2024-01-01T10:00:00Z',
@@ -46,7 +47,8 @@ export class SimulatedBackend implements IRassBackend {
           source: 'documentation',
           application: 'redmine',
           author: 'Jane Doe',
-          url: 'https://example.com/dev-practices'
+          url: 'https://example.com/dev-practices',
+          owner: 'team-b'
         },
         embedding: this.generateDeterministicEmbedding('software development testing code review'),
         created_at: '2024-01-02T14:30:00Z',
@@ -60,7 +62,8 @@ export class SimulatedBackend implements IRassBackend {
           source: 'chat',
           application: 'rocketchat',
           author: 'Team Lead',
-          url: 'https://example.com/team-comm'
+          url: 'https://example.com/team-comm',
+          owner: 'team-a'
         },
         embedding: this.generateDeterministicEmbedding('team communication remote work collaboration'),
         created_at: '2024-01-03T09:15:00Z',
@@ -115,6 +118,24 @@ export class SimulatedBackend implements IRassBackend {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
+  private matchesFilters(doc: EmbeddedDocument, filters?: SearchRequest['filters']): boolean {
+    if (!filters) return true;
+
+    const { application, source, author, owner, date_range } = filters;
+    const docDate = new Date(doc.created_at);
+    const start = date_range?.start ? new Date(date_range.start) : undefined;
+    const end = date_range?.end ? new Date(date_range.end) : undefined;
+
+    return (
+      (!application || doc.metadata.application === application) &&
+      (!source || doc.metadata.source === source) &&
+      (!author || doc.metadata.author === author) &&
+      (!owner || doc.metadata.owner === owner) &&
+      (!start || docDate >= start) &&
+      (!end || docDate <= end)
+    );
+  }
+
   async embed(request: EmbedRequest): Promise<EmbedResponse> {
     try {
       const embedding = this.generateDeterministicEmbedding(request.content);
@@ -150,32 +171,7 @@ export class SimulatedBackend implements IRassBackend {
     const results: SearchResult[] = [];
 
     // Filter documents based on request filters
-    const filteredDocs = Array.from(this.documents.values()).filter(doc => {
-      if (!request.filters) return true;
-
-      if (request.filters.application && doc.metadata.application !== request.filters.application) {
-        return false;
-      }
-      if (request.filters.source && doc.metadata.source !== request.filters.source) {
-        return false;
-      }
-      if (request.filters.author && doc.metadata.author !== request.filters.author) {
-        return false;
-      }
-
-      // Date range filtering
-      if (request.filters.date_range) {
-        const docDate = new Date(doc.created_at);
-        if (request.filters.date_range.start && docDate < new Date(request.filters.date_range.start)) {
-          return false;
-        }
-        if (request.filters.date_range.end && docDate > new Date(request.filters.date_range.end)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
+  const filteredDocs = Array.from(this.documents.values()).filter(doc => this.matchesFilters(doc, request.filters));
 
     // Calculate similarity scores and sort
     for (const doc of filteredDocs) {
@@ -189,8 +185,8 @@ export class SimulatedBackend implements IRassBackend {
         .filter(word => doc.content.toLowerCase().includes(word))
         .map(word => {
           const regex = new RegExp(`(${word})`, 'gi');
-          const matches = doc.content.match(regex);
-          return matches ? matches[0] : word;
+          const match = regex.exec(doc.content);
+          return match ? match[0] : word;
         });
 
       results.push({

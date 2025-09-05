@@ -17,6 +17,7 @@ export default async function searchRoute(fastify: FastifyInstance) {
               application: { type: 'string' },
               source: { type: 'string' },
               author: { type: 'string' },
+              owner: { type: 'string' },
               date_range: {
                 type: 'object',
                 properties: {

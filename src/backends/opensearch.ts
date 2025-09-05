@@ -22,8 +22,8 @@ export interface OpenSearchConfig {
  * OpenSearch backend implementation for real semantic search operations
  */
 export class OpenSearchBackend implements IRassBackend {
-  private client: Client;
-  private index: string;
+  private readonly client: Client;
+  private readonly index: string;
 
   constructor(config: OpenSearchConfig) {
     this.index = config.index;
@@ -40,6 +40,22 @@ export class OpenSearchBackend implements IRassBackend {
     }
 
     this.client = new Client(clientConfig);
+  }
+
+  private buildFilters(filters?: SearchRequest['filters']): any[] {
+    const filter: any[] = [];
+    if (!filters) return filter;
+    if (filters.application) filter.push({ term: { 'metadata.application': filters.application } });
+    if (filters.source) filter.push({ term: { 'metadata.source': filters.source } });
+    if (filters.author) filter.push({ term: { 'metadata.author': filters.author } });
+    if (filters.owner) filter.push({ term: { 'metadata.owner': filters.owner } });
+    if (filters.date_range) {
+      const dateRange: any = {};
+      if (filters.date_range.start) dateRange.gte = filters.date_range.start;
+      if (filters.date_range.end) dateRange.lte = filters.date_range.end;
+      filter.push({ range: { created_at: dateRange } });
+    }
+    return filter;
   }
 
   /**
@@ -67,6 +83,7 @@ export class OpenSearchBackend implements IRassBackend {
                     title: { type: 'text' },
                     source: { type: 'keyword' },
                     application: { type: 'keyword' },
+                    owner: { type: 'keyword' },
                     author: { type: 'keyword' },
                     url: { type: 'keyword' },
                     created_at: { type: 'date' },
@@ -164,31 +181,8 @@ export class OpenSearchBackend implements IRassBackend {
       const limit = request.limit || 10;
       const offset = request.offset || 0;
 
-      // Build query with filters
-      const must: any[] = [];
-      const filter: any[] = [];
-
-      if (request.filters) {
-        if (request.filters.application) {
-          filter.push({ term: { 'metadata.application': request.filters.application } });
-        }
-        if (request.filters.source) {
-          filter.push({ term: { 'metadata.source': request.filters.source } });
-        }
-        if (request.filters.author) {
-          filter.push({ term: { 'metadata.author': request.filters.author } });
-        }
-        if (request.filters.date_range) {
-          const dateRange: any = {};
-          if (request.filters.date_range.start) {
-            dateRange.gte = request.filters.date_range.start;
-          }
-          if (request.filters.date_range.end) {
-            dateRange.lte = request.filters.date_range.end;
-          }
-          filter.push({ range: { created_at: dateRange } });
-        }
-      }
+  // Build query with filters
+  const filter = this.buildFilters(request.filters);
 
       const searchQuery = {
         index: this.index,

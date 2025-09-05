@@ -7,6 +7,7 @@ export interface EmbedRequest {
     title?: string;
     source?: string;
     application?: 'redmine' | 'mediawiki' | 'rocketchat';
+    owner?: string;
     created_at?: string;
     updated_at?: string;
     author?: string;
@@ -28,6 +29,7 @@ export interface SearchRequest {
     application?: string;
     source?: string;
     author?: string;
+    owner?: string;
     date_range?: {
       start?: string;
       end?: string;
@@ -57,7 +59,7 @@ export interface SearchResponse {
 export interface EmbeddedDocument {
   id: string;
   content: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, any> & { owner?: string };
   embedding?: number[];
   created_at: string;
   updated_at: string;
